@@ -1,42 +1,94 @@
-import nodemailer from 'nodemailer';
+import { useState } from 'react';
+import Layout from '../components/Layout';
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
+export default function Kontakt() {
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const { navn, telefon, adresse, postnummer, email } = req.body;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    // Oppsett av SMTP-transport
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com', // Bruk Gmail, eller endre til din leverandør
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER, // Din Gmail eller SMTP-bruker
-        pass: process.env.EMAIL_PASS  // App-passord
-      }
-    });
+    const formData = new FormData(e.target);
+    const plainFormData = Object.fromEntries(formData.entries());
 
-    // Send e-posten
-    await transporter.sendMail({
-      from: `"Elråd" <${process.env.EMAIL_USER}>`,
-      to: 'post@elraad.no', // Kun denne adressen
-      subject: 'Ny henvendelse fra kontaktskjema',
-      html: `
-        <h2>Ny henvendelse fra kontaktskjema</h2>
-        <p><strong>Navn:</strong> ${navn}</p>
-        <p><strong>Telefon:</strong> ${telefon}</p>
-        <p><strong>Adresse:</strong> ${adresse}</p>
-        <p><strong>Postnummer:</strong> ${postnummer}</p>
-        <p><strong>E-post:</strong> ${email}</p>
-      `
-    });
+    try {
+      await fetch('/api/kontakt', { // ✅ Endret til riktig API-sti
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(plainFormData)
+      });
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Feil ved innsending:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return res.status(200).json({ message: 'E-post sendt!' });
-  } catch (error) {
-    console.error('Feil ved sending av e-post:', error);
-    return res.status(500).json({ message: 'Kunne ikke sende e-post' });
-  }
+  return (
+    <Layout>
+      <div className="bg-white shadow p-4 rounded-xl max-w-md w-full mt-4">
+        {!submitted ? (
+          <>
+            <h1 className="text-lg font-bold mb-2 text-center">Kontakt oss</h1>
+            <p className="mb-3 text-center text-gray-700 text-xs">
+              Fyll ut skjema, og vi vil kontakte deg innen 48 timer for råd og veiledning samtale.
+              <br />
+              <span className="font-semibold">
+                (Estimert avsatt tid: 10–15 minutter per samtale, Kr 50,- inkl. MVA)
+              </span>
+            </p>
+            <form onSubmit={handleSubmit} className="space-y-2">
+              <input
+                name="navn"
+                type="text"
+                className="w-full border p-2 rounded text-sm"
+                placeholder="Fullt navn"
+                required
+              />
+              <input
+                name="telefon"
+                type="text"
+                className="w-full border p-2 rounded text-sm"
+                placeholder="Telefonnummer"
+                required
+              />
+              <input
+                name="adresse"
+                type="text"
+                className="w-full border p-2 rounded text-sm"
+                placeholder="Adresse"
+                required
+              />
+              <input
+                name="postnummer"
+                type="text"
+                className="w-full border p-2 rounded text-sm"
+                placeholder="Postnummer"
+                required
+              />
+              <input
+                name="email"
+                type="email"
+                className="w-full border p-2 rounded text-sm"
+                placeholder="E-postadresse"
+                required
+              />
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-green-500 text-white font-bold py-2 rounded-lg text-sm"
+              >
+                {loading ? 'Sender...' : 'SEND MELDING'}
+              </button>
+            </form>
+          </>
+        ) : (
+          <p className="text-center font-semibold text-md">
+            Takk! Vi har mottatt din forespørsel. Vi tar kontakt innen 48 timer.
+          </p>
+        )}
+      </div>
+    </Layout>
+  );
 }
