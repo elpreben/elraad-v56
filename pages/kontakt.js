@@ -13,7 +13,7 @@ export default function Kontakt() {
     const plainFormData = Object.fromEntries(formData.entries());
 
     try {
-      await fetch('/api/contact', {
+      await fetch('/api/kontakt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(plainFormData)
