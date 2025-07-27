@@ -33,7 +33,7 @@ export default function Om() {
           <p className="mb-2">
             <strong>Steg 2:</strong> Hvis problemet ikke blir løst, kan en av våre kvalifiserte fagpersoner – autorisert installatør og elektriker – ta kontakt. 
             Du får da en profesjonell vurdering om problemet kan løses av deg selv, eller om en autorisert elektriker må utføre arbeidet. 
-            Ved behov kan vi også gi deg et prisestimat fra Elråd for jobben.
+            Ved behov kan vi også gi deg et prisestimat fra Elråd.no for jobben.
           </p>
           <p className="mb-2">
             <strong>Steg 3:</strong> Elråd.no kontakter en lokal elektrikerbedrift og videreformidler all relevant informasjon, inkludert prisestimat. 
