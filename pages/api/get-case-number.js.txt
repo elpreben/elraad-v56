@@ -1,0 +1,20 @@
+import { kv } from '@vercel/kv';
+
+export default async function handler(req, res) {
+  if (req.method === 'POST') {
+    try {
+      let caseNumber = await kv.get('caseNumber');
+      if (!caseNumber) caseNumber = 1000;
+
+      caseNumber = Number(caseNumber) + 1;
+      await kv.set('caseNumber', caseNumber);
+
+      return res.status(200).json({ caseNumber });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Failed to generate case number' });
+    }
+  } else {
+    res.status(405).json({ message: 'Method not allowed' });
+  }
+}
