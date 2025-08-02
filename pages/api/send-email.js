@@ -1,43 +1,66 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
+import { redis } from "../../utils/upstashClient";
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Method Not Allowed" });
   }
 
-  const { email, caseNumber } = req.body;
+  const { email, description } = req.body;
 
-  if (!email || !caseNumber) {
-    return res.status(400).json({ message: 'Missing required fields' });
+  if (!email || !description) {
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
+    // Hent nytt saksnummer fra Upstash
+    const caseNumber = await redis.incr("caseCounter");
+
+    // Lagre saken i Redis
+    const newCase = {
+      id: caseNumber.toString(),
+      email,
+      description,
+      status: "Ny",
+    };
+    await redis.rpush("cases", JSON.stringify(newCase));
+
+    // Konfigurer Nodemailer
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
-    const kontaktLink = `https://elraad.no/kontakt-oss?case=${caseNumber}`;
+    // HTML-mal for e-posten
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2 style="color: #333;">Elråd - Sak ${caseNumber}</h2>
+        <p><strong>Saksnummer:</strong> ${caseNumber}</p>
+        <p><strong>Kunde:</strong> ${email}</p>
+        <p><strong>Beskrivelse:</strong></p>
+        <p>${description}</p>
+        <hr />
+        <p>Vi tar kontakt med deg dersom mer informasjon er nødvendig.</p>
+      </div>
+    `;
 
+    // Send e-post til kunden
     await transporter.sendMail({
-      from: `"Elråd.no" <${process.env.EMAIL_USER}>`,
+      from: `"Elråd" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: `Ditt saksnummer: ${caseNumber}`,
-      html: `
-        <h2>Takk for at du kontaktet Elråd!</h2>
-        <p>Ditt saksnummer er: <strong>${caseNumber}</strong></p>
-        <p>Trenger du å gi mer info? Klikk her: <a href="${kontaktLink}">${kontaktLink}</a></p>
-      `,
+      subject: `Bekreftelse - Sak ${caseNumber}`,
+      html: htmlContent,
     });
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({
+      message: "E-post sendt og sak lagret",
+      caseNumber,
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, error: error.message });
+    console.error("Feil ved sending av e-post:", error);
+    return res.status(500).json({ error: "Kunne ikke sende e-post" });
   }
 }
